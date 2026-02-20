@@ -8,7 +8,7 @@ GTM Spark combines **Google Gemini** and **Happenstance AI** to generate a full 
 
 ## Live Demo
 
-🚀 **[gtm-spark.vercel.app](https://growth-catalysts.vercel.app/)**
+🚀 **[growth-catalysts.vercel.app](https://growth-catalysts.vercel.app/)**
 
 ---
 
