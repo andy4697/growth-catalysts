@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { GeminiOutput, EnrichedContact, RawProfile, FormData, Competitor, CompetitorAnalysis } from "@/types/gtm";
+import { GeminiOutput, EnrichedContact, FormData, Competitor, CompetitorAnalysis } from "@/types/gtm";
 
 // Lazy initialisation — never called at build time, only at runtime inside API routes
 function getAI() {
