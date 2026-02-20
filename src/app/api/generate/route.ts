@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { callGemini, synthesizeContacts } from "@/lib/gemini";
+import { callGemini, synthesizeContacts, analyzeCompetitors } from "@/lib/gemini";
 import { getWildcardInsight, getRawProfiles } from "@/lib/happenstance";
 import { GenerateRequest, GtmPlan } from "@/types/gtm";
 
@@ -78,6 +78,21 @@ export async function POST(request: NextRequest) {
       enrichedContacts = [];
       contactsMocked = true;
     }
+
+    // ── Step 4: Gemini analyzes competitors for deep-dive insights ────────────
+    let competitorAnalysis: import("@/types/gtm").CompetitorAnalysis[] = [];
+    try {
+      if (competitors.length > 0) {
+        competitorAnalysis = await analyzeCompetitors(formData, competitors);
+      }
+    } catch (err) {
+      console.error("[Gemini] Step 4 competitor analysis failed:", err);
+      // Non-fatal — competitor analysis will be empty but the rest of the plan still shows
+      competitorAnalysis = [];
+    }
+
+    // Add competitor analysis to gemini output
+    geminiOutput.competitor_analysis = competitorAnalysis;
 
     const plan: GtmPlan = {
       gemini: geminiOutput,

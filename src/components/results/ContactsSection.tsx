@@ -143,6 +143,12 @@ function ContactCard({ contact, index }: { contact: EnrichedContact; index: numb
             </div>
             <p className="text-xs text-foreground leading-relaxed italic">&ldquo;{contact.outreach_hook}&rdquo;</p>
           </div>
+
+          {/* Cold email draft — personalised full email */}
+          <div className="bg-blue-500/5 rounded-lg px-3 py-2.5 border border-blue-500/20">
+            <p className="text-xs font-medium text-blue-400 uppercase tracking-wider mb-2">Cold email draft</p>
+            <p className="text-xs text-foreground leading-relaxed whitespace-pre-wrap">{contact.email_draft}</p>
+          </div>
         </CardContent>
       </Card>
     </motion.div>

@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { GeminiOutput, EnrichedContact, RawProfile, FormData, Competitor } from "@/types/gtm";
+import { GeminiOutput, EnrichedContact, RawProfile, FormData, Competitor, CompetitorAnalysis } from "@/types/gtm";
 
 // Lazy initialisation — never called at build time, only at runtime inside API routes
 function getAI() {
@@ -63,7 +63,10 @@ PRODUCT DESCRIPTION:
 
 Instructions:
 1. icp, channel, pitch, pricing — be specific, punchy, 2-4 sentences max. No clichés.
-2. persona_queries — describe 3 REAL types of people to reach out to. Be very specific: job title, company size/type, location if relevant, and a behavioral signal (e.g. "has complained about X on LinkedIn"). These descriptions will be fed into a people-search API to find actual individuals.
+2. persona_queries — describe 3 SPECIFIC people directly related to THIS PRODUCT'S DOMAIN. NOT generic personas. Examples:
+   - If the product helps students pass tech interviews: search for "engineering hiring manager at FAANG", "tech recruiter at startups", "engineering lead who mentors junior engineers"
+   - If the product helps remote teams with async communication: search for "VP of Engineering at distributed SaaS company", "Head of Remote Operations", "CTO at fully-remote startup"
+   Each query should reference the actual domain/problem your product solves. Include job titles, company types, and a signal tied to YOUR product's specific use case.
 3. competitors — name 3 REAL products/companies competing in this exact space. Give their actual website URL. Identify a concrete gap or weakness each one has.
 
 Return ONLY valid JSON. No markdown, no explanation.
@@ -115,9 +118,10 @@ const SYNTHESIS_SCHEMA = {
           contact_type:  { type: "string", enum: ["angel_investor", "competitor_employee", "potential_customer", "champion"] },
           why_relevant:  { type: "string", description: "2-3 sentences: why THIS specific person matters for this product, referencing actual details from their background" },
           outreach_hook: { type: "string", description: "One personalised opening line for a cold outreach message, referencing something real from their profile (a post, project, or role)" },
+          email_draft:   { type: "string", description: "A 3-4 sentence cold email draft personalised for this person, referencing their actual background, projects, or public statements. Should feel personal, not templated." },
           persona_query: { type: "string" },
         },
-        required: ["name", "title", "company", "contact_type", "why_relevant", "outreach_hook", "persona_query"],
+        required: ["name", "title", "company", "contact_type", "why_relevant", "outreach_hook", "email_draft", "persona_query"],
       },
     },
   },
@@ -172,6 +176,7 @@ For each person, determine:
 1. contact_type: Are they an "angel_investor" (could fund), "competitor_employee" (works at a competitor — insight or partnership value), "potential_customer" (fits the ICP), or "champion" (influencer/advocate who could amplify)?
 2. why_relevant: 2-3 sentences referencing SPECIFIC details from their actual background — their company, a project they ran, something they wrote. Don't be generic.
 3. outreach_hook: One sentence cold outreach opener that references something real from their profile. It should feel personal, not templated.
+4. email_draft: Write a 3-4 sentence cold email for this person. Reference their actual work, a project they built, something they wrote publicly, or their company's mission. Make it feel like it was written specifically for them, not a template.
 
 Return JSON with a "contacts" array. Preserve their name, title, company, linkedin_url, and persona_query exactly as given.
 `.trim();
@@ -192,4 +197,93 @@ Return JSON with a "contacts" array. Preserve their name, title, company, linked
 
   const parsed = safeParseJSON<{ contacts: EnrichedContact[] }>(text);
   return parsed.contacts ?? [];
+}
+
+// ─── Deep-dive competitor analysis ─
+
+const COMPETITOR_ANALYSIS_SCHEMA = {
+  type: "object",
+  properties: {
+    analyses: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          competitor_name: { type: "string", description: "The competitor's name" },
+          what_they_do: { type: "string", description: "One sentence: what this competitor does and who they serve" },
+          their_strengths: {
+            type: "array",
+            description: "2-3 key strengths or competitive advantages of this competitor",
+            items: { type: "string" },
+          },
+          their_weaknesses: {
+            type: "array",
+            description: "2-3 weaknesses, gaps, or blind spots in this competitor's offering",
+            items: { type: "string" },
+          },
+          your_unique_advantage: {
+            type: "string",
+            description: "One specific, concrete advantage your product has over this competitor that solves a pain point they ignore",
+          },
+          focus_area: {
+            type: "string",
+            description: "What aspect of the market should you focus on to differentiate from this competitor (e.g., 'early-stage founders vs enterprises', 'speed vs customisation')",
+          },
+        },
+        required: ["competitor_name", "what_they_do", "their_strengths", "their_weaknesses", "your_unique_advantage", "focus_area"],
+      },
+    },
+  },
+  required: ["analyses"],
+};
+
+export async function analyzeCompetitors(
+  formData: FormData,
+  competitors: Competitor[]
+): Promise<CompetitorAnalysis[]> {
+  if (competitors.length === 0) return [];
+
+  const competitorList = competitors
+    .map((c, i) => `${i + 1}. ${c.name}: ${c.description} (Gap they have: ${c.gap})`)
+    .join("\n");
+
+  const prompt = `
+You are a competitive strategist. Analyze these competitors relative to a new product.
+
+PRODUCT:
+Helps ${formData.helps} to ${formData.to}
+Target audience: ${formData.target.join(", ")}
+Stage: ${formData.stage}
+
+COMPETITORS:
+${competitorList}
+
+For EACH competitor, provide:
+1. what_they_do — One sentence summary of their offering and target market
+2. their_strengths — 2-3 genuine competitive advantages they have
+3. their_weaknesses — 2-3 real gaps or blind spots in their product/positioning
+4. your_unique_advantage — ONE specific, concrete way your product is better and solves a pain point they ignore
+5. focus_area — Where should you focus to differentiate (e.g., "faster onboarding for small teams" vs "enterprise-grade security", "pay-per-use vs $X/month flat fee")
+
+Be specific and grounded. Reference actual product positioning and known market criticisms. Avoid generic platitudes.
+
+Return ONLY valid JSON with an "analyses" array.
+`.trim();
+
+  const response = await getAI().models.generateContent({
+    model: "gemini-2.5-flash",
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: COMPETITOR_ANALYSIS_SCHEMA,
+      temperature: 0.7,
+      maxOutputTokens: 4096,
+    },
+  });
+
+  const text = response.text;
+  if (!text) return [];
+
+  const parsed = safeParseJSON<{ analyses: CompetitorAnalysis[] }>(text);
+  return parsed.analyses ?? [];
 }

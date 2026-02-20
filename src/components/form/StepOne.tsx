@@ -29,7 +29,7 @@ export function StepOne({ helps, to, onChange }: StepOneProps) {
               value={helps}
               onChange={(e) => onChange(e.target.value.slice(0, MAX_CHARS), to)}
               placeholder="e.g., early-stage founders"
-              className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pr-14"
+              className="w-full rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pr-14"
               autoFocus
             />
             <span className={`absolute right-3 top-2.5 text-xs tabular-nums ${helps.length >= MAX_CHARS ? "text-destructive" : "text-muted-foreground"}`}>
@@ -48,7 +48,7 @@ export function StepOne({ helps, to, onChange }: StepOneProps) {
               value={to}
               onChange={(e) => onChange(helps, e.target.value.slice(0, MAX_CHARS))}
               placeholder="e.g., build their GTM strategy in minutes"
-              className="w-full rounded-md border border-input bg-background px-3 py-2.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pr-14"
+              className="w-full rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pr-14"
             />
             <span className={`absolute right-3 top-2.5 text-xs tabular-nums ${to.length >= MAX_CHARS ? "text-destructive" : "text-muted-foreground"}`}>
               {to.length}/{MAX_CHARS}
@@ -59,9 +59,9 @@ export function StepOne({ helps, to, onChange }: StepOneProps) {
 
       {/* Live preview */}
       {(helps || to) && (
-        <div className="rounded-lg border border-border bg-muted/20 p-4 text-sm">
-          <span className="text-muted-foreground text-xs uppercase tracking-wider block mb-1.5">Preview</span>
-          <span className="font-medium leading-relaxed">
+        <div className="rounded-lg border border-border bg-muted/20 p-4">
+          <span className="text-muted-foreground text-xs uppercase tracking-wider block mb-2">Preview</span>
+          <span className="font-medium leading-relaxed text-base">
             &ldquo;My product helps{" "}
             <span className={helps ? "text-primary" : "text-muted-foreground italic"}>{helps || "______"}</span>
             {" "}to{" "}

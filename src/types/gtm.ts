@@ -12,6 +12,7 @@ export interface GeminiOutput {
   pricing: string;
   persona_queries: string[];
   competitors: Competitor[];
+  competitor_analysis?: CompetitorAnalysis[]; // Deep-dive on each competitor
 }
 
 export interface Competitor {
@@ -52,6 +53,17 @@ export interface EnrichedContact {
   // Angel investor / competitor employee / potential customer / champion
   contact_type: "angel_investor" | "competitor_employee" | "potential_customer" | "champion";
   persona_query: string;
+  // Personalised cold email draft — written by Gemini referencing their actual background
+  email_draft: string;
+}
+
+export interface CompetitorAnalysis {
+  competitor_name: string;
+  what_they_do: string;
+  their_strengths: string[];
+  their_weaknesses: string[];
+  your_unique_advantage: string;
+  focus_area: string; // What you should focus on vs this competitor
 }
 
 export interface WildcardInsight {
