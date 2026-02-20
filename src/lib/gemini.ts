@@ -248,26 +248,22 @@ export async function analyzeCompetitors(
     .join("\n");
 
   const prompt = `
-You are a competitive strategist. Analyze these competitors relative to a new product.
+You are a competitive strategist. Briefly analyze these competitors.
 
-PRODUCT:
-Helps ${formData.helps} to ${formData.to}
-Target audience: ${formData.target.join(", ")}
-Stage: ${formData.stage}
+PRODUCT: Helps ${formData.helps} to ${formData.to}
+TARGET: ${formData.target.join(", ")} | STAGE: ${formData.stage}
 
 COMPETITORS:
 ${competitorList}
 
-For EACH competitor, provide:
-1. what_they_do — One sentence summary of their offering and target market
-2. their_strengths — 2-3 genuine competitive advantages they have
-3. their_weaknesses — 2-3 real gaps or blind spots in their product/positioning
-4. your_unique_advantage — ONE specific, concrete way your product is better and solves a pain point they ignore
-5. focus_area — Where should you focus to differentiate (e.g., "faster onboarding for small teams" vs "enterprise-grade security", "pay-per-use vs $X/month flat fee")
+For each competitor, provide:
+1. what_they_do: One sentence summary
+2. their_strengths: 2-3 key advantages (bullet points)
+3. their_weaknesses: 2-3 key gaps (bullet points)
+4. your_unique_advantage: ONE concrete advantage your product has
+5. focus_area: Your differentiation angle
 
-Be specific and grounded. Reference actual product positioning and known market criticisms. Avoid generic platitudes.
-
-Return ONLY valid JSON with an "analyses" array.
+Be concise and specific. Return valid JSON with "analyses" array.
 `.trim();
 
   const response = await getAI().models.generateContent({
@@ -276,8 +272,8 @@ Return ONLY valid JSON with an "analyses" array.
     config: {
       responseMimeType: "application/json",
       responseSchema: COMPETITOR_ANALYSIS_SCHEMA,
-      temperature: 0.7,
-      maxOutputTokens: 4096,
+      temperature: 0.6,
+      maxOutputTokens: 2048,
     },
   });
 

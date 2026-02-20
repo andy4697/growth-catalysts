@@ -4,7 +4,7 @@ import { getWildcardInsight, getRawProfiles } from "@/lib/happenstance";
 import { GenerateRequest, GtmPlan } from "@/types/gtm";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,31 +64,37 @@ export async function POST(request: NextRequest) {
             isMocked: true,
           };
 
-    // ── Step 3: Gemini reads the real profiles and generates enriched intel ────
+    // ── Step 3 & 4: Gemini synthesis + competitor analysis in parallel ────────
     let enrichedContacts: import("@/types/gtm").EnrichedContact[] = [];
+    let competitorAnalysis: import("@/types/gtm").CompetitorAnalysis[] = [];
     let contactsMocked = profilesData.isMocked;
 
+    // Run synthesis and competitor analysis in parallel for speed
+    const [synthesisResult, competitorResult] = await Promise.allSettled([
+      profilesData.profiles.length > 0 ? synthesizeContacts(formData, profilesData.profiles, competitors) : Promise.resolve([]),
+      competitors.length > 0 ? analyzeCompetitors(formData, competitors) : Promise.resolve([]),
+    ]);
+
     try {
-      if (profilesData.profiles.length > 0) {
-        enrichedContacts = await synthesizeContacts(formData, profilesData.profiles, competitors);
+      if (synthesisResult.status === "fulfilled") {
+        enrichedContacts = synthesisResult.value;
+      } else {
+        console.error("[Gemini] Step 3 synthesis failed:", synthesisResult.reason);
+        contactsMocked = true;
       }
     } catch (err) {
       console.error("[Gemini] Step 3 synthesis failed:", err);
-      // Non-fatal — contacts will be empty but the rest of the plan still shows
-      enrichedContacts = [];
       contactsMocked = true;
     }
 
-    // ── Step 4: Gemini analyzes competitors for deep-dive insights ────────────
-    let competitorAnalysis: import("@/types/gtm").CompetitorAnalysis[] = [];
     try {
-      if (competitors.length > 0) {
-        competitorAnalysis = await analyzeCompetitors(formData, competitors);
+      if (competitorResult.status === "fulfilled") {
+        competitorAnalysis = competitorResult.value;
+      } else {
+        console.error("[Gemini] Step 4 competitor analysis failed:", competitorResult.reason);
       }
     } catch (err) {
       console.error("[Gemini] Step 4 competitor analysis failed:", err);
-      // Non-fatal — competitor analysis will be empty but the rest of the plan still shows
-      competitorAnalysis = [];
     }
 
     // Add competitor analysis to gemini output

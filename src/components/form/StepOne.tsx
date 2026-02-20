@@ -29,10 +29,10 @@ export function StepOne({ helps, to, onChange }: StepOneProps) {
               value={helps}
               onChange={(e) => onChange(e.target.value.slice(0, MAX_CHARS), to)}
               placeholder="e.g., early-stage founders"
-              className="w-full rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pr-14"
+              className="w-full rounded-lg border-2 border-input bg-background px-5 py-4 text-lg ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring pr-16 min-h-16"
               autoFocus
             />
-            <span className={`absolute right-3 top-2.5 text-xs tabular-nums ${helps.length >= MAX_CHARS ? "text-destructive" : "text-muted-foreground"}`}>
+            <span className={`absolute right-4 top-4 text-sm font-medium tabular-nums ${helps.length >= MAX_CHARS ? "text-destructive" : "text-muted-foreground"}`}>
               {helps.length}/{MAX_CHARS}
             </span>
           </div>
@@ -48,9 +48,9 @@ export function StepOne({ helps, to, onChange }: StepOneProps) {
               value={to}
               onChange={(e) => onChange(helps, e.target.value.slice(0, MAX_CHARS))}
               placeholder="e.g., build their GTM strategy in minutes"
-              className="w-full rounded-md border border-input bg-background px-4 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring pr-14"
+              className="w-full rounded-lg border-2 border-input bg-background px-5 py-4 text-lg ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-ring pr-16 min-h-16"
             />
-            <span className={`absolute right-3 top-2.5 text-xs tabular-nums ${to.length >= MAX_CHARS ? "text-destructive" : "text-muted-foreground"}`}>
+            <span className={`absolute right-4 top-4 text-sm font-medium tabular-nums ${to.length >= MAX_CHARS ? "text-destructive" : "text-muted-foreground"}`}>
               {to.length}/{MAX_CHARS}
             </span>
           </div>
