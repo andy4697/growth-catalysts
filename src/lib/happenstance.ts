@@ -3,18 +3,18 @@ import type { ResearchRetrieveResponse } from "happenstance-ai/resources/researc
 import { WildcardInsight, RawProfile, FormData } from "@/types/gtm";
 
 // ─── Mock data ─────────────────────────────────────────────────────────────────
-// Only used when API key is missing. Reflects realistic Happenstance shapes.
+// Domain-neutral professionals — used as fallback when API key is missing or calls fail.
 
 const MOCK_WILDCARDS: WildcardInsight[] = [
   {
-    audience: "Procurement officers at mid-market manufacturing companies",
+    audience: "Procurement officers at mid-market companies",
     rationale:
-      "This audience has budget authority and a strong pain point around your core value prop, but is rarely targeted by software products because they don't attend traditional tech events.",
+      "They have budget authority and a strong pain point around your core value prop, but are rarely targeted by software products because they don't attend traditional tech events.",
   },
   {
     audience: "Independent consultants who serve your primary target segment",
     rationale:
-      "They are force multipliers — one consultant can influence 10-20 buying decisions. Often overlooked because they lack obvious job titles. An affiliate program targeting 10-20 key consultants could unlock thousands of targeted users organically.",
+      "Force multipliers — one consultant can influence 10–20 buying decisions. Often overlooked because they lack obvious job titles. An affiliate program targeting 10–20 key consultants could unlock thousands of targeted users organically.",
   },
   {
     audience: "Operations leads at fast-growing Series A/B startups",
@@ -25,61 +25,63 @@ const MOCK_WILDCARDS: WildcardInsight[] = [
 
 export const MOCK_RAW_PROFILES: RawProfile[] = [
   {
-    persona_query: "Engineering hiring manager at a FAANG company",
-    full_name: "David Tisch",
-    tagline: "Managing Director at BoxGroup, early-stage investor",
-    current_title: "Managing Director",
-    current_company: "BoxGroup",
-    linkedin_url: "https://linkedin.com/in/davidtisch",
+    persona_query: "Ideal early adopter persona #1",
+    full_name: "Sarah Chen",
+    tagline: "Engineering Manager at Stripe, previously Google",
+    current_title: "Engineering Manager",
+    current_company: "Stripe",
+    linkedin_url: "https://linkedin.com/in/sarahchen",
     summary_text:
-      "David Tisch is the Managing Director of BoxGroup, a seed-stage venture firm in NYC that has backed over 200 startups including Warby Parker, Vine, and Airtable. He has a strong track record investing in productivity and collaboration tools. Previously co-founded TechStars NYC.",
+      "Sarah Chen is an Engineering Manager at Stripe leading a team of 12 engineers across payments infrastructure. Previously at Google for 6 years on the Cloud Platform team. Active on LinkedIn sharing insights about engineering culture, hiring, and team productivity. Passionate about developer tooling and reducing friction in engineering workflows.",
     recent_employment: [
-      { title: "Managing Director", company: "BoxGroup", description: "Seed-stage VC with focus on consumer, SaaS, and productivity tools" },
-      { title: "Co-Founder", company: "TechStars NYC", description: "Built the NYC accelerator program from scratch" },
+      { title: "Engineering Manager", company: "Stripe", description: "Leading payments infrastructure team" },
+      { title: "Senior Software Engineer", company: "Google", description: "Cloud Platform team, developer tooling" },
     ],
     projects: [
-      { title: "Remote Work Infrastructure Thesis", description: "Active thesis around async-first tools for distributed teams" },
+      { title: "Internal developer productivity initiative", description: "Led org-wide effort to improve CI/CD pipeline speed by 40%" },
     ],
     writings: [
-      { title: "Why async communication is the future of work", description: "Published on Medium, 12k views" },
+      { title: "Why I changed how my team does code reviews", description: "LinkedIn post with 8k+ impressions" },
     ],
   },
   {
-    persona_query: "Tech recruiter at a startup hiring engineers",
-    full_name: "Monika Fabian",
-    tagline: "Head of Product at Loom (acquired by Atlassian)",
-    current_title: "Senior Director of Product",
-    current_company: "Atlassian (formerly Loom)",
-    linkedin_url: "https://linkedin.com/in/monikafahian",
+    persona_query: "Ideal early adopter persona #2",
+    full_name: "Marcus Johnson",
+    tagline: "Head of Product at a Series B SaaS startup",
+    current_title: "Head of Product",
+    current_company: "Notion",
+    linkedin_url: "https://linkedin.com/in/marcusjohnson",
     summary_text:
-      "Monika led product at Loom through its $975M acquisition by Atlassian in 2023. Deep expertise in async video communication, user growth, and product-led growth strategies.",
+      "Marcus Johnson is Head of Product at Notion, focused on enterprise features and team collaboration workflows. Prior to Notion, he was VP Product at a Series B startup that was acquired. Known for product-led growth expertise and has spoken at multiple SaaStr conferences. Regularly posts about PLG, user research, and go-to-market strategy.",
     recent_employment: [
-      { title: "Senior Director of Product", company: "Atlassian (Loom)", description: "Leading async video product post-acquisition" },
-      { title: "Head of Product Growth", company: "Loom", description: "Scaled Loom from 1M to 25M users through PLG strategies" },
+      { title: "Head of Product", company: "Notion", description: "Enterprise product and collaboration features" },
+      { title: "VP Product", company: "Almanac (acquired)", description: "Led product through Series B and acquisition" },
     ],
     projects: [
-      { title: "Async-first workflows", description: "Researching structured async meeting replacements" },
-    ],
-    writings: [],
-  },
-  {
-    persona_query: "Software engineer who recently passed FAANG interview",
-    full_name: "Claire Vo",
-    tagline: "Chief Product Officer at LaunchDarkly, remote work advocate",
-    current_title: "Chief Product Officer",
-    current_company: "LaunchDarkly",
-    linkedin_url: "https://linkedin.com/in/clairevo",
-    summary_text:
-      "Claire Vo is the CPO at LaunchDarkly (fully remote, ~400 employees). Vocal advocate for async-first culture. Previously at Optimizely. Runs a newsletter on remote leadership with 8k subscribers.",
-    recent_employment: [
-      { title: "Chief Product Officer", company: "LaunchDarkly", description: "Led product org at fully-distributed SaaS company" },
-      { title: "VP Product", company: "Optimizely", description: "Built experimentation platform product team" },
-    ],
-    projects: [
-      { title: "Async Leadership Newsletter", description: "Weekly newsletter on remote-first leadership, 8k subscribers" },
+      { title: "PLG Playbook", description: "Open-sourced internal framework for product-led growth metrics" },
     ],
     writings: [
-      { title: "Why I cancelled all recurring meetings", description: "Viral LinkedIn post, 50k+ impressions" },
+      { title: "The 5 metrics every PLG company should track", description: "Published on Substack, 15k subscribers" },
+    ],
+  },
+  {
+    persona_query: "Ideal early adopter persona #3",
+    full_name: "Priya Patel",
+    tagline: "VP of Operations at a remote-first scale-up",
+    current_title: "VP of Operations",
+    current_company: "Deel",
+    linkedin_url: "https://linkedin.com/in/priyapatel",
+    summary_text:
+      "Priya Patel is VP of Operations at Deel, the global HR and payroll platform with 3,000+ employees across 100 countries. Responsible for scaling internal operations, tooling, and cross-functional alignment across a fully distributed team. Previously scaled ops at two other remote-first startups. Active voice in the Future of Work community.",
+    recent_employment: [
+      { title: "VP of Operations", company: "Deel", description: "Scaling global operations and internal tooling for 3,000+ person remote org" },
+      { title: "Director of Operations", company: "Remote.com", description: "Built ops team from 5 to 60 people" },
+    ],
+    projects: [
+      { title: "Distributed Team Ops Framework", description: "Authored internal playbook now used across 3 portfolio companies" },
+    ],
+    writings: [
+      { title: "How we onboard 50 people a week across 80 countries", description: "HackerNews front page post, 2k comments" },
     ],
   },
 ];
@@ -88,68 +90,12 @@ function getRandomMock(): WildcardInsight {
   return MOCK_WILDCARDS[Math.floor(Math.random() * MOCK_WILDCARDS.length)];
 }
 
-// ─── Search API (direct HTTP — SDK doesn't expose this yet) ────────────────────
-// POST /v1/search  → returns { id, url }
-// GET  /v1/search/{id} → returns { status, results: SearchPersonV1[] }
-
-interface SearchPersonV1 {
-  id: string;
-  name: string;
-  current_title?: string | null;
-  current_company?: string | null;
-  summary?: string | null;
-  socials?: {
-    happenstance_url?: string | null;
-    linkedin_url?: string | null;
-    twitter_url?: string | null;
-  } | null;
-}
-
-interface SearchRetrieveResponse {
-  id: string;
-  status: "RUNNING" | "COMPLETED" | "FAILED";
-  text: string;
-  results?: SearchPersonV1[] | null;
-  has_more?: boolean;
-}
-
-async function createSearch(apiKey: string, query: string): Promise<string | null> {
-  const res = await fetch("https://api.happenstance.ai/v1/search", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ text: query }),
-  });
-  if (!res.ok) {
-    console.error("[Happenstance] Search create failed:", res.status, await res.text());
-    return null;
-  }
-  const data = (await res.json()) as { id: string };
-  return data.id ?? null;
-}
-
-async function pollSearch(
-  apiKey: string,
-  searchId: string,
-  maxAttempts = 12,
-  intervalMs = 5000
-): Promise<SearchRetrieveResponse | null> {
-  for (let i = 0; i < maxAttempts; i++) {
-    await new Promise((r) => setTimeout(r, intervalMs));
-    const res = await fetch(`https://api.happenstance.ai/v1/search/${searchId}`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
-    if (!res.ok) continue;
-    const data = (await res.json()) as SearchRetrieveResponse;
-    if (data.status === "COMPLETED") return data;
-    if (data.status === "FAILED") return null;
-  }
-  return null;
-}
-
-// ─── Research API (via SDK) — for wildcard/specific person lookup ──────────────
+// ─── Research API helpers ──────────────────────────────────────────────────────
+// /v1/research  → look up a specific person by description. Works without connections.
+// /v1/search    → find people across your LinkedIn connections (requires synced connections).
+//
+// We use /v1/research for both personas and wildcard because the account may not
+// have LinkedIn connections synced (required for /v1/search to return results).
 
 async function pollResearch(
   client: HappenstanceAI,
@@ -166,21 +112,49 @@ async function pollResearch(
   return null;
 }
 
-// Convert a Happenstance search result person into our RawProfile shape
-function searchPersonToRawProfile(person: SearchPersonV1, personaQuery: string): RawProfile {
+function researchToRawProfile(
+  result: ResearchRetrieveResponse,
+  personaQuery: string
+): RawProfile | null {
+  const profile = result.profile;
+  if (!profile) return null;
+
+  const meta = profile.person_metadata as Record<string, unknown> | undefined;
+  const employment = (profile.employment ?? []) as Array<Record<string, unknown>>;
+  const projects = (profile.projects ?? []) as Array<Record<string, unknown>>;
+  const writings = (profile.writings ?? []) as Array<Record<string, unknown>>;
+
+  const fullName = (meta?.full_name as string) ?? undefined;
+  const tagline = (meta?.tagline as string) ?? undefined;
+  const linkedinUrl = (meta?.linkedin_url as string) ?? undefined;
+  const summaryText = (profile.summary as { text?: string } | undefined)?.text ?? undefined;
+
+  // Get current role from first employment entry
+  const firstJob = employment[0] ?? {};
+  const currentTitle = (firstJob.title as string) ?? undefined;
+  const currentCompany = (firstJob.company as string) ?? undefined;
+
   return {
     persona_query: personaQuery,
-    full_name: person.name || undefined,
-    tagline: undefined,
-    current_title: person.current_title ?? undefined,
-    current_company: person.current_company ?? undefined,
-    linkedin_url: person.socials?.linkedin_url ?? undefined,
-    summary_text: person.summary ?? undefined,
-    recent_employment: person.current_title
-      ? [{ title: person.current_title ?? undefined, company: person.current_company ?? undefined, description: undefined }]
-      : [],
-    projects: [],
-    writings: [],
+    full_name: fullName,
+    tagline,
+    current_title: currentTitle,
+    current_company: currentCompany,
+    linkedin_url: linkedinUrl,
+    summary_text: summaryText,
+    recent_employment: employment.slice(0, 3).map((e) => ({
+      title: (e.title as string) ?? undefined,
+      company: (e.company as string) ?? undefined,
+      description: (e.description as string) ?? undefined,
+    })),
+    projects: projects.slice(0, 2).map((p) => ({
+      title: (p.title as string) ?? undefined,
+      description: (p.description as string) ?? undefined,
+    })),
+    writings: writings.slice(0, 2).map((w) => ({
+      title: (w.title as string) ?? undefined,
+      description: (w.description as string) ?? undefined,
+    })),
   };
 }
 
@@ -204,7 +178,7 @@ export async function getWildcardInsight(
     const result = await pollResearch(client, research.id);
     if (!result?.profile?.summary?.text) return { insight: getRandomMock(), isMocked: true };
 
-    const text = result.profile.summary.text;
+    const text = result.profile.summary.text as string;
     const sentences = text.split(". ").filter(Boolean);
     return {
       insight: {
@@ -219,9 +193,8 @@ export async function getWildcardInsight(
   }
 }
 
-// Uses /v1/search (not /v1/research) to find MULTIPLE people matching each persona query.
-// This is the correct endpoint — search returns a list of relevant people,
-// whereas research looks up a single specific named person.
+// Uses /v1/research to look up one real person per persona query.
+// Falls back to domain-neutral mock profiles if the API is unavailable.
 export async function getRawProfiles(
   personaQueries: string[]
 ): Promise<{ profiles: RawProfile[]; isMocked: boolean }> {
@@ -232,38 +205,40 @@ export async function getRawProfiles(
   }
 
   try {
-    console.log("[Happenstance] Starting search for", personaQueries.length, "persona queries");
+    const client = new HappenstanceAI({ apiKey });
+    console.log("[Happenstance] Starting research for", personaQueries.length, "persona queries");
 
-    // Kick off all search jobs in parallel
-    const searchIds = await Promise.allSettled(
-      personaQueries.map((query) => createSearch(apiKey, query))
+    // Kick off all research jobs in parallel
+    const researchJobs = await Promise.allSettled(
+      personaQueries.map(async (query) => {
+        const res = await client.research.create({ description: query });
+        return { id: res.id, query };
+      })
     );
 
     const started: { id: string; query: string }[] = [];
-    searchIds.forEach((result, i) => {
-      if (result.status === "fulfilled" && result.value) {
-        started.push({ id: result.value, query: personaQueries[i] });
-        console.log(`[Happenstance] Search started for "${personaQueries[i].slice(0, 60)}..." → id=${result.value}`);
+    researchJobs.forEach((result) => {
+      if (result.status === "fulfilled" && result.value?.id) {
+        started.push(result.value);
+        console.log(`[Happenstance] Research started → id=${result.value.id}`);
       }
     });
 
     if (started.length === 0) {
-      console.warn("[Happenstance] No searches started — falling back to mock");
+      console.warn("[Happenstance] No research jobs started — falling back to mock");
       return { profiles: MOCK_RAW_PROFILES, isMocked: true };
     }
 
-    // Poll all searches in parallel
+    // Poll all in parallel
     const results = await Promise.allSettled(
       started.map(async ({ id, query }) => {
-        const result = await pollSearch(apiKey, id);
-        if (!result || !result.results || result.results.length === 0) {
-          console.warn(`[Happenstance] Search ${id} returned no results`);
+        const result = await pollResearch(client, id);
+        if (!result) {
+          console.warn(`[Happenstance] Research ${id} failed or timed out`);
           return null;
         }
-        console.log(`[Happenstance] Search ${id} returned ${result.results.length} people`);
-        // Take the top match for this persona query
-        const topPerson = result.results[0];
-        return searchPersonToRawProfile(topPerson, query);
+        console.log(`[Happenstance] Research ${id} completed`);
+        return researchToRawProfile(result, query);
       })
     );
 
@@ -273,7 +248,7 @@ export async function getRawProfiles(
       .filter((p): p is RawProfile => p !== null);
 
     if (profiles.length === 0) {
-      console.warn("[Happenstance] All searches returned empty — falling back to mock");
+      console.warn("[Happenstance] All research returned empty — falling back to mock");
       return { profiles: MOCK_RAW_PROFILES, isMocked: true };
     }
 

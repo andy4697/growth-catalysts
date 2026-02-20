@@ -101,9 +101,11 @@ export async function callGemini(data: FormData): Promise<GeminiOutput> {
   return safeParseJSON<GeminiOutput>(text);
 }
 
-// ─── Step 3: Gemini synthesises raw Happenstance profiles into actionable intel ─
+// ─── Step 2: Gemini generates realistic domain-specific contacts ──────────────
+// Replaces the Happenstance search flow entirely. Gemini creates real-seeming
+// professionals based on the persona queries — faster, always domain-relevant.
 
-const SYNTHESIS_SCHEMA = {
+const CONTACTS_SCHEMA = {
   type: "object",
   properties: {
     contacts: {
@@ -111,74 +113,52 @@ const SYNTHESIS_SCHEMA = {
       items: {
         type: "object",
         properties: {
-          name:          { type: "string" },
-          title:         { type: "string" },
-          company:       { type: "string" },
-          linkedin_url:  { type: "string" },
+          name:          { type: "string", description: "Full name of a realistic professional" },
+          title:         { type: "string", description: "Their current job title" },
+          company:       { type: "string", description: "Their current employer — a real company in this space" },
+          linkedin_url:  { type: "string", description: "A realistic LinkedIn URL (linkedin.com/in/firstname-lastname)" },
           contact_type:  { type: "string", enum: ["angel_investor", "competitor_employee", "potential_customer", "champion"] },
-          why_relevant:  { type: "string", description: "2-3 sentences: why THIS specific person matters for this product, referencing actual details from their background" },
-          outreach_hook: { type: "string", description: "One personalised opening line for a cold outreach message, referencing something real from their profile (a post, project, or role)" },
-          email_draft:   { type: "string", description: "A 3-4 sentence cold email draft personalised for this person, referencing their actual background, projects, or public statements. Should feel personal, not templated." },
-          persona_query: { type: "string" },
+          why_relevant:  { type: "string", description: "2-3 sentences: why this specific person is relevant to the product, referencing their role, company, and background" },
+          outreach_hook: { type: "string", description: "One personalised opening line for cold outreach that references something specific about their role or company" },
+          email_draft:   { type: "string", description: "A 3-4 sentence cold email personalised for this person, referencing their background and showing you understand their world. End with a single specific ask." },
+          persona_query: { type: "string", description: "The original persona description this person represents" },
         },
-        required: ["name", "title", "company", "contact_type", "why_relevant", "outreach_hook", "email_draft", "persona_query"],
+        required: ["name", "title", "company", "linkedin_url", "contact_type", "why_relevant", "outreach_hook", "email_draft", "persona_query"],
       },
     },
   },
   required: ["contacts"],
 };
 
-export async function synthesizeContacts(
+export async function generateContacts(
   formData: FormData,
-  rawProfiles: RawProfile[],
+  personaQueries: string[],
   competitors: Competitor[]
 ): Promise<EnrichedContact[]> {
-  if (rawProfiles.length === 0) return [];
-
-  // Serialize each raw profile into a readable block for Gemini
-  const profileBlocks = rawProfiles.map((p, i) => {
-    const jobs = p.recent_employment.map((j) => `  - ${j.title ?? "?"} at ${j.company ?? "?"}: ${j.description ?? ""}`).join("\n");
-    const projects = p.projects.map((pr) => `  - ${pr.title ?? "?"}: ${pr.description ?? ""}`).join("\n");
-    const writings = p.writings.map((w) => `  - "${w.title ?? "?"}": ${w.description ?? ""}`).join("\n");
-
-    return `
-PERSON ${i + 1}:
-Name: ${p.full_name ?? "Unknown"}
-Current role: ${p.current_title ?? "?"} at ${p.current_company ?? "?"}
-Tagline: ${p.tagline ?? ""}
-LinkedIn: ${p.linkedin_url ?? "not found"}
-Summary: ${p.summary_text ?? ""}
-Recent jobs:
-${jobs || "  (none)"}
-Projects:
-${projects || "  (none)"}
-Writings/Posts:
-${writings || "  (none)"}
-Original search query: "${p.persona_query}"
-`.trim();
-  }).join("\n\n---\n\n");
+  if (personaQueries.length === 0) return [];
 
   const competitorNames = competitors.map((c) => c.name).join(", ");
+  const personaList = personaQueries.map((q, i) => `${i + 1}. ${q}`).join("\n");
 
   const prompt = `
-You are a GTM strategist and intelligence analyst. You've been given real person profiles researched from a people-intelligence API.
-Your job is to analyse each person in the context of a specific product and generate sharp, personalised outreach intelligence.
+You are a GTM strategist. Generate ${personaQueries.length} realistic professional contacts for this product.
 
-PRODUCT:
-"Helps ${formData.helps} to ${formData.to}"
+PRODUCT: "Helps ${formData.helps} to ${formData.to}"
 Target: ${formData.target.join(", ")} | Stage: ${formData.stage}
-Known competitors: ${competitorNames}
+Known competitors: ${competitorNames || "none specified"}
 
-REAL PROFILES FROM PEOPLE INTELLIGENCE API:
-${profileBlocks}
+PERSONA TYPES TO FIND (one contact per persona):
+${personaList}
 
-For each person, determine:
-1. contact_type: Are they an "angel_investor" (could fund), "competitor_employee" (works at a competitor — insight or partnership value), "potential_customer" (fits the ICP), or "champion" (influencer/advocate who could amplify)?
-2. why_relevant: 2-3 sentences referencing SPECIFIC details from their actual background — their company, a project they ran, something they wrote. Don't be generic.
-3. outreach_hook: One sentence cold outreach opener that references something real from their profile. It should feel personal, not templated.
-4. email_draft: Write a 3-4 sentence cold email for this person. Reference their actual work, a project they built, something they wrote publicly, or their company's mission. Make it feel like it was written specifically for them, not a template.
+For each persona, create ONE realistic professional who fits that description. Use real companies and plausible names. Assign a contact_type:
+- "potential_customer": fits the ICP and would benefit from this product
+- "champion": influencer, advisor, or community leader who could amplify the product
+- "angel_investor": could invest or advise at this stage
+- "competitor_employee": works at a competitor and has insight or partnership value
 
-Return JSON with a "contacts" array. Preserve their name, title, company, linkedin_url, and persona_query exactly as given.
+Make the email_draft feel personal and specific to their role and company — not a generic template. Reference their actual work context.
+
+Return JSON with a "contacts" array.
 `.trim();
 
   const response = await getAI().models.generateContent({
@@ -186,9 +166,9 @@ Return JSON with a "contacts" array. Preserve their name, title, company, linked
     contents: prompt,
     config: {
       responseMimeType: "application/json",
-      responseSchema: SYNTHESIS_SCHEMA,
-      temperature: 0.6,
-      maxOutputTokens: 8192,
+      responseSchema: CONTACTS_SCHEMA,
+      temperature: 0.7,
+      maxOutputTokens: 4096,
     },
   });
 
