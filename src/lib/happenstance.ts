@@ -2,7 +2,8 @@ import HappenstanceAI from "happenstance-ai";
 import type { ResearchRetrieveResponse } from "happenstance-ai/resources/research.js";
 import { WildcardInsight, RawProfile, FormData } from "@/types/gtm";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
+// ─── Mock data ─────────────────────────────────────────────────────────────────
+// Only used when API key is missing. Reflects realistic Happenstance shapes.
 
 const MOCK_WILDCARDS: WildcardInsight[] = [
   {
@@ -22,18 +23,16 @@ const MOCK_WILDCARDS: WildcardInsight[] = [
   },
 ];
 
-// Rich mock profiles that simulate what Happenstance actually returns —
-// used when no API key is set so the Gemini synthesis still has real data to work with
 export const MOCK_RAW_PROFILES: RawProfile[] = [
   {
-    persona_query: "Angel investor who has funded remote work or async collaboration tools",
+    persona_query: "Engineering hiring manager at a FAANG company",
     full_name: "David Tisch",
     tagline: "Managing Director at BoxGroup, early-stage investor",
     current_title: "Managing Director",
     current_company: "BoxGroup",
     linkedin_url: "https://linkedin.com/in/davidtisch",
     summary_text:
-      "David Tisch is the Managing Director of BoxGroup, a seed-stage venture firm in NYC that has backed over 200 startups including Warby Parker, Vine, and Airtable. He has a strong track record investing in productivity and collaboration tools. Previously co-founded TechStars NYC. Active angel in remote-work infrastructure companies.",
+      "David Tisch is the Managing Director of BoxGroup, a seed-stage venture firm in NYC that has backed over 200 startups including Warby Parker, Vine, and Airtable. He has a strong track record investing in productivity and collaboration tools. Previously co-founded TechStars NYC.",
     recent_employment: [
       { title: "Managing Director", company: "BoxGroup", description: "Seed-stage VC with focus on consumer, SaaS, and productivity tools" },
       { title: "Co-Founder", company: "TechStars NYC", description: "Built the NYC accelerator program from scratch" },
@@ -46,33 +45,32 @@ export const MOCK_RAW_PROFILES: RawProfile[] = [
     ],
   },
   {
-    persona_query: "VP Engineering or Head of Product at a direct competitor in async communication tools",
+    persona_query: "Tech recruiter at a startup hiring engineers",
     full_name: "Monika Fabian",
     tagline: "Head of Product at Loom (acquired by Atlassian)",
     current_title: "Senior Director of Product",
     current_company: "Atlassian (formerly Loom)",
     linkedin_url: "https://linkedin.com/in/monikafahian",
     summary_text:
-      "Monika led product at Loom through its $975M acquisition by Atlassian in 2023. Deep expertise in async video communication, user growth, and product-led growth strategies. Previously at Facebook and Dropbox. Has publicly discussed the limitations of current async tools and the gap in structured async workflows.",
+      "Monika led product at Loom through its $975M acquisition by Atlassian in 2023. Deep expertise in async video communication, user growth, and product-led growth strategies.",
     recent_employment: [
       { title: "Senior Director of Product", company: "Atlassian (Loom)", description: "Leading async video product post-acquisition" },
       { title: "Head of Product Growth", company: "Loom", description: "Scaled Loom from 1M to 25M users through PLG strategies" },
-      { title: "Product Manager", company: "Facebook", description: "Messenger growth team" },
     ],
     projects: [
-      { title: "Async-first workflows", description: "Researching structured async meeting replacements — a known gap in Loom's current roadmap" },
+      { title: "Async-first workflows", description: "Researching structured async meeting replacements" },
     ],
     writings: [],
   },
   {
-    persona_query: "Head of Remote Operations or Chief of Staff at a 50-200 person remote-first startup who actively complains about meeting overload",
+    persona_query: "Software engineer who recently passed FAANG interview",
     full_name: "Claire Vo",
     tagline: "Chief Product Officer at LaunchDarkly, remote work advocate",
     current_title: "Chief Product Officer",
     current_company: "LaunchDarkly",
     linkedin_url: "https://linkedin.com/in/clairevo",
     summary_text:
-      "Claire Vo is the CPO at LaunchDarkly (fully remote, ~400 employees). Vocal advocate for async-first culture, has given talks at SaaStr and Config on eliminating synchronous meetings. Previously at Optimizely. Runs a newsletter on remote leadership with 8k subscribers. Has publicly stated she would pay for a better async standup solution.",
+      "Claire Vo is the CPO at LaunchDarkly (fully remote, ~400 employees). Vocal advocate for async-first culture. Previously at Optimizely. Runs a newsletter on remote leadership with 8k subscribers.",
     recent_employment: [
       { title: "Chief Product Officer", company: "LaunchDarkly", description: "Led product org at fully-distributed SaaS company" },
       { title: "VP Product", company: "Optimizely", description: "Built experimentation platform product team" },
@@ -82,7 +80,6 @@ export const MOCK_RAW_PROFILES: RawProfile[] = [
     ],
     writings: [
       { title: "Why I cancelled all recurring meetings", description: "Viral LinkedIn post, 50k+ impressions" },
-      { title: "The async-first playbook", description: "Conference talk at SaaStr 2023" },
     ],
   },
 ];
@@ -91,17 +88,74 @@ function getRandomMock(): WildcardInsight {
   return MOCK_WILDCARDS[Math.floor(Math.random() * MOCK_WILDCARDS.length)];
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Search API (direct HTTP — SDK doesn't expose this yet) ────────────────────
+// POST /v1/search  → returns { id, url }
+// GET  /v1/search/{id} → returns { status, results: SearchPersonV1[] }
 
-function buildWildcardQuery(data: FormData): string {
-  return `A person who represents an unexpected, non-obvious audience segment for a product that helps ${data.helps} to ${data.to}. This person should NOT be the obvious target customer — they should be from an adjacent space who has the same problem.`;
+interface SearchPersonV1 {
+  id: string;
+  name: string;
+  current_title?: string | null;
+  current_company?: string | null;
+  summary?: string | null;
+  socials?: {
+    happenstance_url?: string | null;
+    linkedin_url?: string | null;
+    twitter_url?: string | null;
+  } | null;
 }
+
+interface SearchRetrieveResponse {
+  id: string;
+  status: "RUNNING" | "COMPLETED" | "FAILED";
+  text: string;
+  results?: SearchPersonV1[] | null;
+  has_more?: boolean;
+}
+
+async function createSearch(apiKey: string, query: string): Promise<string | null> {
+  const res = await fetch("https://api.happenstance.ai/v1/search", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ text: query }),
+  });
+  if (!res.ok) {
+    console.error("[Happenstance] Search create failed:", res.status, await res.text());
+    return null;
+  }
+  const data = (await res.json()) as { id: string };
+  return data.id ?? null;
+}
+
+async function pollSearch(
+  apiKey: string,
+  searchId: string,
+  maxAttempts = 12,
+  intervalMs = 5000
+): Promise<SearchRetrieveResponse | null> {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    const res = await fetch(`https://api.happenstance.ai/v1/search/${searchId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    });
+    if (!res.ok) continue;
+    const data = (await res.json()) as SearchRetrieveResponse;
+    if (data.status === "COMPLETED") return data;
+    if (data.status === "FAILED") return null;
+  }
+  return null;
+}
+
+// ─── Research API (via SDK) — for wildcard/specific person lookup ──────────────
 
 async function pollResearch(
   client: HappenstanceAI,
   id: string,
-  maxAttempts = 10,
-  intervalMs = 4000
+  maxAttempts = 12,
+  intervalMs = 5000
 ): Promise<ResearchRetrieveResponse | null> {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, intervalMs));
@@ -112,44 +166,25 @@ async function pollResearch(
   return null;
 }
 
-// Convert a raw Happenstance API response into our clean RawProfile shape
-function toRawProfile(
-  result: ResearchRetrieveResponse,
-  personaQuery: string
-): RawProfile | null {
-  const profile = result.profile;
-  if (!profile || !profile.person_metadata?.full_name) return null;
-
-  const recentJobs = (profile.employment ?? [])
-    .slice(0, 3)
-    .map((e) => ({ title: e.job_title ?? undefined, company: e.company_name ?? undefined, description: e.description ?? undefined }));
-
-  const projects = (profile.projects ?? [])
-    .slice(0, 3)
-    .map((p) => ({ title: p.title ?? undefined, description: p.description ?? undefined }));
-
-  const writings = (profile.writings ?? [])
-    .slice(0, 3)
-    .map((w) => ({ title: w.title ?? undefined, description: w.description ?? undefined }));
-
-  const currentJob = profile.employment?.find((e) => !e.end_date) ?? profile.employment?.[0];
-  const linkedinUrl = profile.person_metadata.profile_urls?.find((u) => u.includes("linkedin.com"));
-
+// Convert a Happenstance search result person into our RawProfile shape
+function searchPersonToRawProfile(person: SearchPersonV1, personaQuery: string): RawProfile {
   return {
     persona_query: personaQuery,
-    full_name: profile.person_metadata.full_name ?? undefined,
-    tagline: profile.person_metadata.tagline ?? undefined,
-    current_title: currentJob?.job_title ?? undefined,
-    current_company: currentJob?.company_name ?? undefined,
-    linkedin_url: linkedinUrl,
-    summary_text: profile.summary?.text ?? undefined,
-    recent_employment: recentJobs,
-    projects,
-    writings,
+    full_name: person.name || undefined,
+    tagline: undefined,
+    current_title: person.current_title ?? undefined,
+    current_company: person.current_company ?? undefined,
+    linkedin_url: person.socials?.linkedin_url ?? undefined,
+    summary_text: person.summary ?? undefined,
+    recent_employment: person.current_title
+      ? [{ title: person.current_title ?? undefined, company: person.current_company ?? undefined, description: undefined }]
+      : [],
+    projects: [],
+    writings: [],
   };
 }
 
-// ─── Exports ──────────────────────────────────────────────────────────────────
+// ─── Exports ───────────────────────────────────────────────────────────────────
 
 export async function getWildcardInsight(
   data: FormData
@@ -161,7 +196,9 @@ export async function getWildcardInsight(
 
   try {
     const client = new HappenstanceAI({ apiKey });
-    const research = await client.research.create({ description: buildWildcardQuery(data) });
+    const query = `A person who represents an unexpected, non-obvious audience segment for a product that helps ${data.helps} to ${data.to}. This person should NOT be the obvious target customer — they should be from an adjacent space who has the same underlying problem.`;
+
+    const research = await client.research.create({ description: query });
     if (!research?.id) return { insight: getRandomMock(), isMocked: true };
 
     const result = await pollResearch(client, research.id);
@@ -182,37 +219,51 @@ export async function getWildcardInsight(
   }
 }
 
-// Returns raw profiles (not enriched) — Gemini will synthesise these into EnrichedContacts
+// Uses /v1/search (not /v1/research) to find MULTIPLE people matching each persona query.
+// This is the correct endpoint — search returns a list of relevant people,
+// whereas research looks up a single specific named person.
 export async function getRawProfiles(
   personaQueries: string[]
 ): Promise<{ profiles: RawProfile[]; isMocked: boolean }> {
   const apiKey = process.env.HAPPENSTANCE_AI_API_KEY;
   if (!apiKey || apiKey === "your_happenstance_api_key_here") {
+    console.log("[Happenstance] No API key — returning mock profiles");
     return { profiles: MOCK_RAW_PROFILES, isMocked: true };
   }
 
   try {
-    const client = new HappenstanceAI({ apiKey });
+    console.log("[Happenstance] Starting search for", personaQueries.length, "persona queries");
 
-    // Kick off all research jobs in parallel
-    const jobs = await Promise.allSettled(
-      personaQueries.map((query) =>
-        client.research.create({ description: query }).then((res) => ({ id: res.id, query }))
-      )
+    // Kick off all search jobs in parallel
+    const searchIds = await Promise.allSettled(
+      personaQueries.map((query) => createSearch(apiKey, query))
     );
 
-    const started = jobs
-      .filter((j): j is PromiseFulfilledResult<{ id: string; query: string }> => j.status === "fulfilled")
-      .map((j) => j.value);
+    const started: { id: string; query: string }[] = [];
+    searchIds.forEach((result, i) => {
+      if (result.status === "fulfilled" && result.value) {
+        started.push({ id: result.value, query: personaQueries[i] });
+        console.log(`[Happenstance] Search started for "${personaQueries[i].slice(0, 60)}..." → id=${result.value}`);
+      }
+    });
 
-    if (started.length === 0) return { profiles: MOCK_RAW_PROFILES, isMocked: true };
+    if (started.length === 0) {
+      console.warn("[Happenstance] No searches started — falling back to mock");
+      return { profiles: MOCK_RAW_PROFILES, isMocked: true };
+    }
 
-    // Poll all in parallel
+    // Poll all searches in parallel
     const results = await Promise.allSettled(
       started.map(async ({ id, query }) => {
-        const result = await pollResearch(client, id, 10, 4000);
-        if (!result) return null;
-        return toRawProfile(result, query);
+        const result = await pollSearch(apiKey, id);
+        if (!result || !result.results || result.results.length === 0) {
+          console.warn(`[Happenstance] Search ${id} returned no results`);
+          return null;
+        }
+        console.log(`[Happenstance] Search ${id} returned ${result.results.length} people`);
+        // Take the top match for this persona query
+        const topPerson = result.results[0];
+        return searchPersonToRawProfile(topPerson, query);
       })
     );
 
@@ -221,7 +272,12 @@ export async function getRawProfiles(
       .map((r) => r.value)
       .filter((p): p is RawProfile => p !== null);
 
-    if (profiles.length === 0) return { profiles: MOCK_RAW_PROFILES, isMocked: true };
+    if (profiles.length === 0) {
+      console.warn("[Happenstance] All searches returned empty — falling back to mock");
+      return { profiles: MOCK_RAW_PROFILES, isMocked: true };
+    }
+
+    console.log(`[Happenstance] Got ${profiles.length} real profiles`);
     return { profiles, isMocked: false };
   } catch (err) {
     console.error("[Happenstance] profiles failed, using mock:", err);
