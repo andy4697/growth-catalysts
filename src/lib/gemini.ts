@@ -1,7 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 import { GeminiOutput, EnrichedContact, RawProfile, FormData, Competitor } from "@/types/gtm";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+// Lazy initialisation — never called at build time, only at runtime inside API routes
+function getAI() {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY environment variable is not set");
+  return new GoogleGenAI({ apiKey: key });
+}
 
 const GTM_RESPONSE_SCHEMA = {
   type: "object",
@@ -74,7 +79,7 @@ function safeParseJSON<T>(raw: string): T {
 export async function callGemini(data: FormData): Promise<GeminiOutput> {
   const prompt = buildGeminiPrompt(data);
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: "gemini-2.5-flash",
     contents: prompt,
     config: {
@@ -171,7 +176,7 @@ For each person, determine:
 Return JSON with a "contacts" array. Preserve their name, title, company, linkedin_url, and persona_query exactly as given.
 `.trim();
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: "gemini-2.5-flash",
     contents: prompt,
     config: {
